@@ -4,198 +4,377 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= html($page->title()) ?> - Book Request Library</title>
+    <title><?= html($page->title()) ?></title>
     <link rel="stylesheet" href="<?= url('assets/css/books.css') ?>">
 </head>
 <body>
-    <div class="container">
-        <header class="main-header">
-            <div class="header-title">
-                <h1><?= html($page->title()) ?></h1>
-            </div>
+    <header class="page-header">
+        <div class="header-grid">
+            <h1 class="page-title"><a href="/"><?= html($page->title()) ?></a></h1>
+            <button class="btn-add" onclick="openModal('requestForm')">הצעת ספר +</button>
             
-            <div class="header-controls">
-                <button class="btn-add-request" onclick="openModal('requestForm')">+ Add Request</button>
+            <div class="controls">
+                <div class="control-group">
+                    <div class="control-label">סדר לפי</div>
+                    <div class="control-options">
+                        <?php $currentSort = $kirby->request()->get('sort') ?? 'date'; ?>
+                        <a href="?sort=date<?= $kirby->request()->get('filter') ? '&filter=' . $kirby->request()->get('filter') : '' ?>" class="control-option <?= $currentSort === 'date' ? 'active' : '' ?>">תאריך העלאה</a>
+                        <a href="?sort=rating<?= $kirby->request()->get('filter') ? '&filter=' . $kirby->request()->get('filter') : '' ?>" class="control-option <?= $currentSort === 'rating' ? 'active' : '' ?>">פופולריות</a>
+                        <a href="?sort=title<?= $kirby->request()->get('filter') ? '&filter=' . $kirby->request()->get('filter') : '' ?>" class="control-option <?= $currentSort === 'title' ? 'active' : '' ?>">אלףבית</a>
+                    </div>
+                </div>
                 
-                <div class="controls-group">
-                    <div class="sort-control">
-                        <label>Sort by:</label>
-                        <select id="sortBy" onchange="updateSort(this.value)">
-                            <option value="rating" <?= ($kirby->request()->get('sort') ?? 'rating') === 'rating' ? 'selected' : '' ?>>Rating</option>
-                            <option value="title" <?= ($kirby->request()->get('sort') ?? '') === 'title' ? 'selected' : '' ?>>A-Z</option>
-                            <option value="date" <?= ($kirby->request()->get('sort') ?? '') === 'date' ? 'selected' : '' ?>>Time Added</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-control">
-                        <label>Filter by:</label>
-                        <select id="filterBy" onchange="updateFilter(this.value)">
-                            <option value="all">All</option>
-                            <option value="chosen" <?= ($kirby->request()->get('filter') ?? '') === 'chosen' ? 'selected' : '' ?>>Chosen (Already Ordered)</option>
-                            <option value="student" <?= ($kirby->request()->get('filter') ?? '') === 'student' ? 'selected' : '' ?>>Suggested by Students</option>
-                            <option value="teacher" <?= ($kirby->request()->get('filter') ?? '') === 'teacher' ? 'selected' : '' ?>>Suggested by Teachers</option>
-                        </select>
-                    </div>
-                    
-                    <div class="search-control">
-                        <input type="text" id="searchBooks" placeholder="Search books..." value="<?= esc($kirby->request()->get('q') ?? '') ?>" onkeyup="debounceSearch(this.value)">
+                <div class="control-group">
+                    <div class="control-label">סנן לפי <?php $currentFilter = $kirby->request()->get('filter'); if ($currentFilter): ?><a href="?sort=<?= $currentSort ?>" class="show-all">(איפוס)</a><?php endif; ?></div>
+                    <div class="control-options">
+                        <a href="?sort=<?= $currentSort ?>&filter=chosen" class="control-option <?= $currentFilter === 'chosen' ? 'active' : '' ?>">הוזמנו</a>
+                        <a href="?sort=<?= $currentSort ?>&filter=student" class="control-option <?= $currentFilter === 'student' ? 'active' : '' ?>">הצעות תלמידים</a>
+                        <a href="?sort=<?= $currentSort ?>&filter=teacher" class="control-option <?= $currentFilter === 'teacher' ? 'active' : '' ?>">הצעות מורים</a>
                     </div>
                 </div>
             </div>
-        </header>
+            
+            <div class="search-box">
+                <input type="text" id="searchBooks" placeholder="חיפוש" value="<?= esc($kirby->request()->get('q') ?? '') ?>">
+                <?php if ($kirby->request()->get('q')): ?>
+                <button type="button" class="search-clear" onclick="clearSearch()">×</button>
+                <?php endif; ?>
+            </div>
+        </div>
+    </header>
 
-        <main class="content">
-            <div class="books-gallery">
-                <?php 
-                $books = $page->children()->listed();
-                
-                // Sort
-                $sort = $kirby->request()->get('sort') ?? 'rating';
-                if ($sort === 'title') {
-                    $books = $books->sortBy('title', 'asc');
-                } elseif ($sort === 'date') {
-                    $books = $books->sortBy('date', 'desc');
-                } else {
-                    // Sort by votes (rating) - highest first
-                    $booksArray = [];
-                    foreach ($books as $book) {
-                        $booksArray[] = $book;
-                    }
-                    usort($booksArray, function($a, $b) {
-                        $aVotes = intval($a->votes()->value() ?? 0);
-                        $bVotes = intval($b->votes()->value() ?? 0);
-                        return $bVotes <=> $aVotes;
-                    });
-                    $books = new \Kirby\Toolkit\Collection($booksArray);
+    <main class="container">
+        <div class="cards-grid">
+            <?php 
+            $books = $page->children()->listed();
+            
+            // Sort
+            $sort = $kirby->request()->get('sort') ?? 'date';
+            if ($sort === 'title') {
+                $books = $books->sortBy('title', 'asc');
+            } elseif ($sort === 'date') {
+                $books = $books->sortBy('date', 'desc');
+            } else {
+                $booksArray = [];
+                foreach ($books as $book) {
+                    $booksArray[] = $book;
                 }
-                
-                // Filter
-                $filter = $kirby->request()->get('filter');
-                if (!empty($filter) && $filter !== 'all') {
-                    $books = $books->filterBy('category', $filter);
-                }
-                
-                // Search
-                $search = $kirby->request()->get('q');
-                if (!empty($search)) {
-                    $books = $books->search($search, ['title', 'suggested_by', 'publisher']);
-                }
-                
-                foreach ($books as $book):
-                $suggested = $book->suggested_by()->value() ?? 'Unknown';
-                $category = $book->category()->value() ?? 'student';
+                usort($booksArray, function($a, $b) {
+                    $aVotes = intval($a->votes()->value() ?? 0);
+                    $bVotes = intval($b->votes()->value() ?? 0);
+                    return $bVotes <=> $aVotes;
+                });
+                $books = new \Kirby\Toolkit\Collection($booksArray);
+            }
+            
+            // Filter
+            $filter = $kirby->request()->get('filter');
+            if ($filter === 'chosen') {
+                $books = $books->filterBy('chosen', 'true');
+            } elseif ($filter === 'student') {
+                $books = $books->filterBy('role', 'student');
+            } elseif ($filter === 'teacher') {
+                $books = $books->filterBy('role', 'teacher');
+            }
+            
+            // Search
+            $search = $kirby->request()->get('q');
+            if (!empty($search)) {
+                $books = $books->search($search, ['title', 'suggested_by', 'publisher']);
+            }
+            
+            foreach ($books as $book):
                 $title = $book->title()->value() ?? 'Untitled';
+                $suggested = $book->suggested_by()->value() ?? '';
                 $publisher = $book->publisher()->value() ?? '';
                 $link = $book->link()->value() ?? '';
+                $coverUrl = $book->cover_url()->value() ?? '';
                 $votes = intval($book->votes()->value() ?? 0);
-                ?>
-                    <div class="book-card">
-                        <div class="book-cover">
-                            <?php if ($book->cover()->exists()): ?>
-                                <?php $cover = $book->cover()->first(); ?>
-                                <img src="<?= $cover->url() ?>" alt="<?= esc($title) ?>">
-                            <?php else: ?>
-                                <div class="cover-placeholder">No Cover</div>
-                            <?php endif; ?>
-                        </div>
-                        
-                        <div class="book-info">
-                            <div class="suggested-by">
-                                <div>Suggested by: <strong><?= esc($suggested) ?></strong></div>
-                                <span class="category-badge category-<?= esc($category) ?>">
-                                    <?= $category === 'student' ? 'Student' : ($category === 'teacher' ? 'Teacher' : 'Chosen') ?>
-                                </span>
-                            </div>
-                            
-                            <h2 class="book-title"><?= esc($title) ?></h2>
-                            
-                            <div class="book-meta">
-                                <?php if (!empty($publisher)): ?>
-                                    <p class="publisher"><?= esc($publisher) ?></p>
-                                <?php endif; ?>
-                                
-                                <?php if (!empty($link)): ?>
-                                    <a href="<?= esc($link) ?>" target="_blank" class="book-link">View on Site →</a>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        
-                        <div class="book-footer">
-                            <button class="btn-like" onclick="likeBook('<?= $book->slug() ?>')">
-                                <span class="heart-icon">♥</span>
-                                <span class="vote-count"><?= $votes ?></span>
+                $isChosen = $book->chosen()->value() === 'true';
+            ?>
+            <article class="card<?= $isChosen ? ' card--chosen' : '' ?>" data-slug="<?= $book->slug() ?>">
+                <div class="card-image">
+                    <?php if ($book->cover()->exists()): ?>
+                        <?php $cover = $book->cover()->first(); ?>
+                        <img src="<?= $cover->url() ?>" alt="<?= esc($title) ?>">
+                    <?php elseif (!empty($coverUrl)): ?>
+                        <img src="<?= esc($coverUrl) ?>" alt="<?= esc($title) ?>" onerror="this.parentElement.innerHTML='<div class=\'placeholder\'></div>'">
+                    <?php else: ?>
+                        <div class="placeholder"></div>
+                    <?php endif; ?>
+                    <?php if ($isChosen): ?>
+                        <span class="badge">הוזמן</span>
+                    <?php endif; ?>
+                </div>
+                
+                <div class="card-content">
+                    <div class="card-header">
+                        <h2 class="card-title"><?= esc($title) ?><?php if (!empty($link)): ?> <a href="<?= esc($link) ?>" target="_blank" class="arrow">↖</a><?php endif; ?></h2>
+                        <div class="vote-wrap">
+                            <button class="btn-vote" data-slug="<?= $book->slug() ?>" onclick="toggleVote('<?= $book->slug() ?>')">
+                                <span class="heart">♥</span>
                             </button>
+                            <span class="vote-count"><?= $votes ?></span>
                         </div>
                     </div>
-                <?php 
-                endforeach;
-                ?>
-            </div>
+                    <?php if (!empty($publisher)): ?>
+                        <p class="card-publisher"><?= esc($publisher) ?></p>
+                    <?php endif; ?>
+                    <?php if (!empty($suggested)): ?>
+                        <p class="card-meta">הוצע ע״י <?= esc($suggested) ?></p>
+                    <?php endif; ?>
+                </div>
+            </article>
+            <?php endforeach; ?>
             
             <?php if ($books->count() === 0): ?>
-                <div class="no-results">
-                    <p>No books found. Try adjusting your filters or search.</p>
-                </div>
+            <div class="empty">
+                <p>סליחה, לא מצאנו ספרים התואמים את הקריטריונים שלך ;(</p>
+            </div>
             <?php endif; ?>
-        </main>
-    </div>
+        </div>
+    </main>
 
-    <!-- Add Request Modal -->
+    <!-- Modal -->
     <div class="modal" id="requestForm">
-        <div class="modal-content">
-            <button class="close" onclick="closeModal('requestForm')">&times;</button>
-            <h2>Add Book Request</h2>
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeModal('requestForm')">×</button>
+            <h2>הוספת ספר</h2>
             
-            <form id="addBookForm" enctype="multipart/form-data">
-                <input type="hidden" name="csrf" value="<?= csrf() ?>">
-                
-                <div class="form-group">
-                    <label for="name">Your Name *</label>
-                    <input type="text" id="name" name="suggested_by" required placeholder="Your name">
+            <form id="addBookForm">
+                <div class="field">
+                    <label>שם הספר *</label>
+                    <input type="text" name="title" required placeholder="שם הספר">
                 </div>
                 
-                <div class="form-group">
-                    <label for="title">Book Title *</label>
-                    <input type="text" id="title" name="title" required placeholder="Enter book title">
+                <div class="field">
+                    <label>השם שלך *</label>
+                    <input type="text" name="suggested_by" required placeholder="השם שלך">
                 </div>
                 
-                <div class="form-group">
-                    <label for="publisher">Publisher</label>
-                    <input type="text" id="publisher" name="publisher" placeholder="Publisher name">
+                <div class="field">
+                    <label>מוציא לאור</label>
+                    <input type="text" name="publisher" placeholder="שם המוציא לאור">
                 </div>
                 
-                <div class="form-group">
-                    <label for="link">Book Link</label>
-                    <input type="url" id="link" name="link" placeholder="https://goodreads.com/...">
+                <div class="field">
+                    <label>קישור לספר</label>
+                    <input type="url" name="link" placeholder="קישור מחנות אונליין (התמונה תילקח אוטומטית)">
                 </div>
                 
-                <div class="form-group">
-                    <label for="category">Category *</label>
-                    <select id="category" name="category" required>
-                        <option value="">Select category</option>
-                        <option value="student">Suggested by Student</option>
-                        <option value="teacher">Suggested by Teacher</option>
-                        <option value="chosen">Already Chosen</option>
-                    </select>
+                <div class="field">
+                    <label>תמונת כריכה (אופציונלי)</label>
+                    <div class="dropzone" id="coverDropzone">
+                        <div class="dropzone-content">
+                            <span class="dropzone-text">גרור קובץ, הדבק קישור לתמונה,<br><u>בחר קובץ</u> או לחץ <u>לבחירה</u></span>
+                            <div class="dropzone-preview hidden">
+                                <img src="" alt="Preview">
+                                <button type="button" class="dropzone-remove">×</button>
+                            </div>
+                        </div>
+                        <input type="file" name="cover" accept="image/*" class="dropzone-file">
+                        <input type="hidden" name="cover_url" id="coverUrlHidden">
+                    </div>
                 </div>
                 
-                <div class="form-group">
-                    <label for="cover">Cover Image</label>
-                    <input type="file" id="cover" name="cover" accept="image/*">
+                <div class="field">
+                    <label>הערות</label>
+                    <textarea name="notes" placeholder="למה אתה רוצה את הספר הזה?"></textarea>
                 </div>
                 
-                <div class="form-group">
-                    <label for="notes">Notes</label>
-                    <textarea id="notes" name="notes" placeholder="Any additional information..."></textarea>
-                </div>
-                
-                <button type="submit" class="btn-submit">Submit Request</button>
+                <button type="submit" class="btn-submit">שלח</button>
             </form>
         </div>
     </div>
 
     <script>
-        // Handle book submission form
+        // Voted books stored in localStorage
+        const votedBooks = JSON.parse(localStorage.getItem('votedBooks') || '[]');
+        
+        // Mark already voted books
+        document.querySelectorAll('.btn-vote').forEach(btn => {
+            const slug = btn.dataset.slug;
+            if (votedBooks.includes(slug)) {
+                btn.classList.add('voted');
+            }
+        });
+        
+        function toggleVote(slug) {
+            const btn = document.querySelector(`.btn-vote[data-slug="${slug}"]`);
+            const isVoted = votedBooks.includes(slug);
+            
+            fetch('/books/vote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ slug: slug, action: isVoted ? 'remove' : 'add' })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const countEl = btn.parentElement.querySelector('.vote-count');
+                    countEl.textContent = data.votes;
+                    
+                    if (isVoted) {
+                        const idx = votedBooks.indexOf(slug);
+                        votedBooks.splice(idx, 1);
+                        btn.classList.remove('voted');
+                    } else {
+                        votedBooks.push(slug);
+                        btn.classList.add('voted');
+                    }
+                    localStorage.setItem('votedBooks', JSON.stringify(votedBooks));
+                }
+            });
+        }
+        
+        // Search
+        function clearSearch() {
+            const params = new URLSearchParams(window.location.search);
+            params.delete('q');
+            window.location.search = params.toString();
+        }
+        
+        let searchTimeout;
+        document.getElementById('searchBooks').addEventListener('keyup', function(e) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const params = new URLSearchParams(window.location.search);
+                if (this.value.trim()) {
+                    params.set('q', this.value);
+                } else {
+                    params.delete('q');
+                }
+                window.location.search = params.toString();
+            }, 800);
+        });
+        
+        // Modal
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', e => {
+                if (e.target === modal) closeModal(modal.id);
+            });
+        });
+        
+        // Dropzone functionality (Are.na style)
+        const dropzone = document.getElementById('coverDropzone');
+        const dropzoneFile = dropzone.querySelector('.dropzone-file');
+        const dropzoneText = dropzone.querySelector('.dropzone-text');
+        const dropzonePreview = dropzone.querySelector('.dropzone-preview');
+        const dropzoneImg = dropzonePreview.querySelector('img');
+        const dropzoneRemove = dropzone.querySelector('.dropzone-remove');
+        const coverUrlHidden = document.getElementById('coverUrlHidden');
+        
+        function showPreview(src) {
+            dropzoneImg.src = src;
+            dropzoneText.classList.add('hidden');
+            dropzonePreview.classList.remove('hidden');
+            dropzone.classList.add('has-preview');
+        }
+        
+        function clearPreview() {
+            dropzoneImg.src = '';
+            dropzoneText.classList.remove('hidden');
+            dropzonePreview.classList.add('hidden');
+            dropzone.classList.remove('has-preview');
+            dropzoneFile.value = '';
+            coverUrlHidden.value = '';
+        }
+        
+        // Click to select file
+        dropzone.addEventListener('click', (e) => {
+            if (e.target !== dropzoneRemove && !dropzone.classList.contains('has-preview')) {
+                dropzoneFile.click();
+            }
+        });
+        
+        // File selected
+        dropzoneFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => showPreview(e.target.result);
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Remove button
+        dropzoneRemove.addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearPreview();
+        });
+        
+        // Drag and drop
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+        
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('dragover');
+        });
+        
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                // Create a new FileList-like object
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                dropzoneFile.files = dt.files;
+                
+                const reader = new FileReader();
+                reader.onload = (ev) => showPreview(ev.target.result);
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Paste image URL or image from clipboard
+        dropzone.addEventListener('paste', (e) => {
+            e.preventDefault();
+            
+            // Check for pasted image
+            const items = e.clipboardData.items;
+            for (let item of items) {
+                if (item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    dropzoneFile.files = dt.files;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (ev) => showPreview(ev.target.result);
+                    reader.readAsDataURL(file);
+                    return;
+                }
+            }
+            
+            // Check for pasted URL
+            const text = e.clipboardData.getData('text');
+            if (text && (text.startsWith('http://') || text.startsWith('https://'))) {
+                // Check if it looks like an image URL
+                if (text.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i)) {
+                    coverUrlHidden.value = text;
+                    showPreview(text);
+                }
+            }
+        });
+        
+        // Make dropzone focusable for paste
+        dropzone.setAttribute('tabindex', '0');
+        
+        // Form submit
         document.getElementById('addBookForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
@@ -204,97 +383,19 @@
                 method: 'POST',
                 body: formData
             })
-            .then(r => {
-                console.log('Response status:', r.status);
-                return r.text().then(text => {
-                    console.log('Response text:', text);
-                    try {
-                        return JSON.parse(text);
-                    } catch (e) {
-                        throw new Error('Invalid JSON response: ' + text);
-                    }
-                });
-            })
-            .then(data => {
-                console.log('Data:', data);
-                if (data.success) {
-                    alert('Book added successfully!');
-                    document.getElementById('addBookForm').reset();
-                    closeModal('requestForm');
-                    location.reload();
-                } else {
-                    alert('Error: ' + (data.error || 'Unknown error'));
-                }
-            })
-            .catch(err => {
-                console.error('Fetch error:', err);
-                alert('Error: ' + err.message);
-            });
-        });
-        
-        const queryParams = new URLSearchParams(window.location.search);
-        
-        function updateSort(value) {
-            queryParams.set('sort', value);
-            window.location.search = queryParams.toString();
-        }
-        
-        function updateFilter(value) {
-            if (value === 'all') {
-                queryParams.delete('filter');
-            } else {
-                queryParams.set('filter', value);
-            }
-            window.location.search = queryParams.toString();
-        }
-        
-        let searchTimeout;
-        function debounceSearch(value) {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                if (value.trim()) {
-                    queryParams.set('q', value);
-                } else {
-                    queryParams.delete('q');
-                }
-                window.location.search = queryParams.toString();
-            }, 500);
-        }
-        
-        function openModal(modalId) {
-            const modal = document.getElementById(modalId);
-            modal.style.display = 'flex';
-            modal.classList.add('active');
-        }
-        
-        function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            modal.style.display = 'none';
-            modal.classList.remove('active');
-        }
-        
-        window.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
-                e.target.style.display = 'none';
-                e.target.classList.remove('active');
-            }
-        });
-        
-        function likeBook(slug) {
-            fetch('/books/vote', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ slug: slug })
-            })
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
+                    this.reset();
+                    clearPreview();
+                    closeModal('requestForm');
                     location.reload();
+                } else {
+                    alert(data.error || 'שגיאה בשליחת הבקשה');
                 }
-            });
-        }
+            })
+            .catch(err => alert('שגיאה: ' + err.message));
+        });
     </script>
 </body>
 </html>

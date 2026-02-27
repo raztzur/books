@@ -6,15 +6,15 @@ Suggested-by: Michael Lee
 
 ----
 
-Category: student
-
-----
-
 Publisher: Taschen
 
 ----
 
 Link: https://www.goodreads.com/book/show/67890
+
+----
+
+Cover-url: 
 
 ----
 
@@ -27,3 +27,15 @@ Notes: Contemporary graphic design excellence
 ----
 
 Votes: 12
+
+----
+
+Chosen: false
+
+----
+
+Category: student
+
+----
+
+Uuid: skfaiyyaaaxhhptn

@@ -1,25 +1,71 @@
-# The `site.yml` blueprint defines the look of the start page (Dashboard) of the Panel.
+# Site Dashboard - Book Request Library
 
-# The site blueprint usually provides easy access to all main pages of the site.
-# More about the site blueprint: https://getkirby.com/docs/reference/panel/blueprints/site
-
-# The layout of this form has two columns:
 columns:
-  # First column: Photography section
-  - width: 1/2
+  - width: 2/3
     sections:
-      albums: sections/albums
-
-  # Second column: Other Pages
-  - width: 1/2
-    sections:
-      pages:
+      pending:
         type: pages
-        create: default
-        templates:
-          - about
-          - default
+        label: Pending Requests
+        query: kirby.page("home").children.filterBy("chosen", "!=", "true")
+        template: book
+        status: all
+        layout: table
+        sortBy: votes desc
+        columns:
+          title:
+            label: Title
+            width: 1/2
+          suggested_by:
+            label: Requested By
+            width: 1/4
+          votes:
+            label: Votes
+            width: 1/6
 
-      notes:
-        extends: sections/notes
-        status: listed
+      ordered:
+        type: pages
+        label: Ordered Books
+        query: kirby.page("home").children.filterBy("chosen", "true")
+        template: book
+        status: all
+        layout: table
+        sortBy: title asc
+        columns:
+          title:
+            label: Title
+            width: 1/2
+          suggested_by:
+            label: Requested By
+            width: 1/4
+          votes:
+            label: Votes
+            width: 1/6
+
+  - width: 1/3
+    sections:
+      stats:
+        type: stats
+        label: Overview
+        reports:
+          - label: Total Requests
+            value: "{{ kirby.page('home').children.count }}"
+            theme: positive
+          - label: Ordered
+            value: "{{ kirby.page('home').children.filterBy('chosen', 'true').count }}"
+            theme: none
+          - label: Pending
+            value: "{{ kirby.page('home').children.filterBy('chosen', '!=', 'true').count }}"
+            theme: yellow
+
+      info:
+        type: info
+        label: Quick Help
+        text: |
+          **Managing Books**
+          - Click a book title to edit details
+          - Toggle "Ordered" when a book has been purchased
+          - Books move between lists automatically
+          
+          **Public Site**
+          - Users vote once per book (toggle on/off)
+          - Ordered books appear dimmed

@@ -1,0 +1,37 @@
+Title: אלכימאי
+
+----
+
+Suggested-by: מערכת
+
+----
+
+Publisher: פאולו קואלו
+
+----
+
+Link: 
+
+----
+
+Cover-url: https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1654371463i/18144590.jpg
+
+----
+
+Cover: []
+
+----
+
+Notes: 
+
+----
+
+Votes: 0
+
+----
+
+Chosen: false
+
+----
+
+Uuid: 3snxz3eqitljtczw

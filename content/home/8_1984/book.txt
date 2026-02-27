@@ -1,0 +1,41 @@
+Title: 1984
+
+----
+
+Suggested-by: מערכת
+
+----
+
+Role: 
+
+----
+
+Publisher: ג׳ורג׳ אורוול
+
+----
+
+Link: 
+
+----
+
+Cover-url: https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1657781256i/61439040.jpg
+
+----
+
+Cover: []
+
+----
+
+Notes: 
+
+----
+
+Votes: 0
+
+----
+
+Chosen: false
+
+----
+
+Uuid: mz1z5cpcdudsa59p

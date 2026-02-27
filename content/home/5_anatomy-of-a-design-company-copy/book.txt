@@ -1,4 +1,4 @@
-Title: The Anatomy of a Design Company
+Title: The Anatomy of a Design Company Copy
 
 ----
 
@@ -6,7 +6,7 @@ Suggested-by: Sarah Johnson
 
 ----
 
-Role: 
+Category: teacher
 
 ----
 
@@ -18,11 +18,7 @@ Link: https://www.goodreads.com/book/show/12345
 
 ----
 
-Cover-url: 
-
-----
-
-Cover: []
+Votes: 12
 
 ----
 
@@ -30,16 +26,12 @@ Notes: A classic on design history and process
 
 ----
 
-Votes: 12
-
-----
-
 Chosen: false
 
 ----
 
-Category: teacher
+Cover-url: 
 
 ----
 
-Uuid: b4lgkf5iosfoicpo
+Uuid: ao9aj5gzrqstnxgt

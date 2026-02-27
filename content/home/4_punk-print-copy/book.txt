@@ -1,12 +1,8 @@
-Title: Oh So Pretty Punk in Print 1976-80
+Title: Oh So Pretty Punk in Print 1976-80 Copy
 
 ----
 
 Suggested-by: Emma Davis
-
-----
-
-Role: 
 
 ----
 
@@ -30,7 +26,7 @@ Notes: Punk design and culture from the golden era
 
 ----
 
-Votes: 24
+Votes: 25
 
 ----
 
@@ -42,4 +38,4 @@ Category: student
 
 ----
 
-Uuid: 0fluwjuywuvto8h2
+Uuid: tspwprb5nr0ivr3b
