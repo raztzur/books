@@ -219,6 +219,119 @@ Kirby::plugin('custom/book-api', [
                     return ['success' => false, 'error' => $e->getMessage()];
                 }
             }
+        ],
+        [
+            'pattern' => 'books/(:any)',
+            'method' => 'GET',
+            'action' => function($slug) {
+                header('Content-Type: application/json');
+                
+                try {
+                    $booksPage = kirby()->page('home');
+                    if (!$booksPage) {
+                        http_response_code(404);
+                        return ['success' => false, 'error' => 'Home page not found'];
+                    }
+                    
+                    $book = $booksPage->children()->findBy('slug', $slug);
+                    if (!$book) {
+                        http_response_code(404);
+                        return ['success' => false, 'error' => 'Book not found'];
+                    }
+                    
+                    // Get cover image URL
+                    $coverUrl = '';
+                    if ($book->cover()->toFiles()->count() > 0) {
+                        $coverUrl = $book->cover()->toFiles()->first()->url();
+                    } elseif ($book->cover_url()->isNotEmpty()) {
+                        $coverUrl = $book->cover_url()->value();
+                    }
+                    
+                    // Get comments
+                    $comments = [];
+                    $commentsData = $book->comments()->toStructure();
+                    foreach ($commentsData as $comment) {
+                        $comments[] = [
+                            'author' => $comment->author()->value(),
+                            'text' => $comment->text()->value(),
+                            'date' => $comment->date()->value()
+                        ];
+                    }
+                    
+                    return [
+                        'success' => true,
+                        'book' => [
+                            'slug' => $book->slug(),
+                            'title' => $book->title()->value(),
+                            'suggested_by' => $book->suggested_by()->value(),
+                            'publisher' => $book->publisher()->value(),
+                            'link' => $book->link()->value(),
+                            'cover' => $coverUrl,
+                            'notes' => $book->notes()->value(),
+                            'votes' => (int)$book->votes()->value(),
+                            'chosen' => $book->chosen()->value() === 'true',
+                            'comments' => $comments
+                        ]
+                    ];
+                } catch (Exception $e) {
+                    http_response_code(500);
+                    return ['success' => false, 'error' => $e->getMessage()];
+                }
+            }
+        ],
+        [
+            'pattern' => 'books/(:any)/comment',
+            'method' => 'POST',
+            'action' => function($slug) {
+                header('Content-Type: application/json');
+                $input = json_decode(file_get_contents('php://input'), true);
+                $author = $input['author'] ?? null;
+                $text = $input['text'] ?? null;
+                
+                if (empty($author) || empty($text)) {
+                    http_response_code(400);
+                    return ['success' => false, 'error' => 'Author and text are required'];
+                }
+                
+                try {
+                    $booksPage = kirby()->page('home');
+                    if (!$booksPage) {
+                        http_response_code(404);
+                        return ['success' => false, 'error' => 'Home page not found'];
+                    }
+                    
+                    $book = $booksPage->children()->findBy('slug', $slug);
+                    if (!$book) {
+                        http_response_code(404);
+                        return ['success' => false, 'error' => 'Book not found'];
+                    }
+                    
+                    // Get existing comments
+                    $existingComments = $book->comments()->yaml() ?: [];
+                    
+                    // Add new comment
+                    $newComment = [
+                        'author' => $author,
+                        'text' => $text,
+                        'date' => date('Y-m-d')
+                    ];
+                    $existingComments[] = $newComment;
+                    
+                    // Update book
+                    kirby()->impersonate('kirby', function() use ($book, $existingComments) {
+                        $book->update(['comments' => $existingComments]);
+                    });
+                    
+                    return [
+                        'success' => true,
+                        'comment' => $newComment,
+                        'totalComments' => count($existingComments)
+                    ];
+                } catch (Exception $e) {
+                    http_response_code(500);
+                    return ['success' => false, 'error' => $e->getMessage()];
+                }
+            }
         ]
     ]
 ]);

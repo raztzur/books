@@ -55,3 +55,17 @@ fields:
       - Pending
       - Ordered
     default: false
+    
+  comments:
+    label: Comments
+    type: structure
+    fields:
+      author:
+        label: Author
+        type: text
+      text:
+        label: Comment
+        type: textarea
+      date:
+        label: Date
+        type: date

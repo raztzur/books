@@ -18,7 +18,7 @@ Link: https://www.goodreads.com/book/show/12345
 
 ----
 
-Cover-url: 
+Cover-url: https://www.lars-mueller-publishers.com/sites/default/files/styles/medium_uncropped/public/2022-12/L%E2%80%99esprit-de-la-chaise_F.webp?itok=-_U73dsf
 
 ----
 

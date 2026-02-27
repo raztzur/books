@@ -6,6 +6,10 @@ Suggested-by: Emma Davis
 
 ----
 
+Role: 
+
+----
+
 Publisher: Booth-Clibborn Editions
 
 ----
@@ -14,7 +18,7 @@ Link: https://www.goodreads.com/book/show/11111
 
 ----
 
-Cover-url: 
+Cover-url: https://doyoureadme.de/cdn/shop/files/42514-Iroha_Kazuo-Kitai-1.jpg?v=1771339256&width=2000
 
 ----
 

@@ -4,13 +4,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= html($page->title()) ?></title>
+    <title><?= str_replace('|', ' ', html($page->title())) ?></title>
     <link rel="stylesheet" href="<?= url('assets/css/books.css') ?>">
 </head>
 <body>
     <header class="page-header">
         <div class="header-grid">
-            <h1 class="page-title"><a href="/"><?= html($page->title()) ?></a></h1>
+            <?php 
+            $titleParts = explode('|', $page->title()->value());
+            $firstLine = trim($titleParts[0] ?? '');
+            $restLines = isset($titleParts[1]) ? '<br>' . trim($titleParts[1]) : '';
+            ?>
+            <h1 class="page-title"><a href="/"><?= html($firstLine) ?></a><button class="scroll-top" onclick="scrollToTop()" title="חזרה למעלה">↑</button><?php if ($restLines): ?><br><a href="/"><?= html(trim($titleParts[1])) ?></a><?php endif; ?></h1>
             <button class="btn-add" onclick="openModal('requestForm')">הצעת ספר +</button>
             
             <div class="controls">
@@ -91,11 +96,12 @@
                 $coverUrl = $book->cover_url()->value() ?? '';
                 $votes = intval($book->votes()->value() ?? 0);
                 $isChosen = $book->chosen()->value() === 'true';
+                $commentsCount = $book->comments()->toStructure()->count();
             ?>
-            <article class="card<?= $isChosen ? ' card--chosen' : '' ?>" data-slug="<?= $book->slug() ?>">
+            <article class="card<?= $isChosen ? ' card--chosen' : '' ?>" data-slug="<?= $book->slug() ?>" onclick="openBookModal('<?= $book->slug() ?>')">
                 <div class="card-image">
-                    <?php if ($book->cover()->exists()): ?>
-                        <?php $cover = $book->cover()->first(); ?>
+                    <?php if ($book->cover()->toFiles()->count() > 0): ?>
+                        <?php $cover = $book->cover()->toFiles()->first(); ?>
                         <img src="<?= $cover->url() ?>" alt="<?= esc($title) ?>">
                     <?php elseif (!empty($coverUrl)): ?>
                         <img src="<?= esc($coverUrl) ?>" alt="<?= esc($title) ?>" onerror="this.parentElement.innerHTML='<div class=\'placeholder\'></div>'">
@@ -109,12 +115,18 @@
                 
                 <div class="card-content">
                     <div class="card-header">
-                        <h2 class="card-title"><?= esc($title) ?><?php if (!empty($link)): ?> <a href="<?= esc($link) ?>" target="_blank" class="arrow">↖</a><?php endif; ?></h2>
-                        <div class="vote-wrap">
-                            <button class="btn-vote" data-slug="<?= $book->slug() ?>" onclick="toggleVote('<?= $book->slug() ?>')">
-                                <span class="heart">♥</span>
-                            </button>
-                            <span class="vote-count"><?= $votes ?></span>
+                        <h2 class="card-title"><?= esc($title) ?><?php if (!empty($link)): ?> <a href="<?= esc($link) ?>" target="_blank" class="arrow" onclick="event.stopPropagation()">↖</a><?php endif; ?></h2>
+                        <div class="card-actions">
+                            <div class="vote-wrap">
+                                <button class="btn-vote" data-slug="<?= $book->slug() ?>" onclick="event.stopPropagation(); toggleVote('<?= $book->slug() ?>')">
+                                    <span class="heart">♥</span>
+                                </button>
+                                <span class="vote-count"><?= $votes ?></span>
+                            </div>
+                            <div class="comment-indicator" data-slug="<?= $book->slug() ?>">
+                                <span class="comment-icon">💬</span>
+                                <span class="comment-count"><?= $commentsCount ?></span>
+                            </div>
                         </div>
                     </div>
                     <?php if (!empty($publisher)): ?>
@@ -187,7 +199,70 @@
         </div>
     </div>
 
+    <!-- Book Detail Modal -->
+    <div class="modal" id="bookDetailModal">
+        <div class="modal-box modal-box--large">
+            <button class="modal-close" onclick="closeModal('bookDetailModal')">×</button>
+            
+            <div class="book-detail">
+                <div class="book-detail-cover">
+                    <img src="" alt="" id="bookDetailCover">
+                    <div class="placeholder" id="bookDetailPlaceholder"></div>
+                </div>
+                
+                <div class="book-detail-info">
+                    <h2 id="bookDetailTitle"></h2>
+                    <p class="book-detail-publisher" id="bookDetailPublisher"></p>
+                    <p class="book-detail-meta" id="bookDetailMeta"></p>
+                    <p class="book-detail-notes" id="bookDetailNotes"></p>
+                    <a href="" target="_blank" class="book-detail-link" id="bookDetailLink">קישור לספר ↖</a>
+                    
+                    <div class="book-detail-actions">
+                        <div class="vote-wrap">
+                            <button class="btn-vote" id="bookDetailVoteBtn" onclick="toggleVoteInModal()">
+                                <span class="heart">♥</span>
+                            </button>
+                            <span class="vote-count" id="bookDetailVotes"></span>
+                        </div>
+                        <span class="badge" id="bookDetailBadge">הוזמן</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="comments-section">
+                <h3>תגובות (<span id="commentsCount">0</span>)</h3>
+                
+                <div class="comments-list" id="commentsList">
+                    <!-- Comments will be loaded here -->
+                </div>
+                
+                <form id="addCommentForm" class="add-comment-form">
+                    <input type="hidden" id="commentBookSlug">
+                    <div class="comment-inputs">
+                        <input type="text" name="author" placeholder="השם שלך" required>
+                        <textarea name="text" placeholder="כתוב תגובה..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn-submit">שלח</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Scroll to top
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        window.addEventListener('scroll', () => {
+            const scrollTop = document.querySelector('.scroll-top');
+            if (window.scrollY > 300) {
+                scrollTop.classList.add('visible');
+            } else {
+                scrollTop.classList.remove('visible');
+            }
+        });
+        
         // Voted books stored in localStorage
         const votedBooks = JSON.parse(localStorage.getItem('votedBooks') || '[]');
         
@@ -392,6 +467,150 @@
                     location.reload();
                 } else {
                     alert(data.error || 'שגיאה בשליחת הבקשה');
+                }
+            })
+            .catch(err => alert('שגיאה: ' + err.message));
+        });
+        
+        // Book Detail Modal
+        let currentBookSlug = null;
+        
+        function openBookModal(slug) {
+            currentBookSlug = slug;
+            document.getElementById('commentBookSlug').value = slug;
+            
+            // Fetch book details
+            fetch(`/books/${slug}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const book = data.book;
+                        
+                        // Populate modal
+                        document.getElementById('bookDetailTitle').textContent = book.title;
+                        document.getElementById('bookDetailPublisher').textContent = book.publisher || '';
+                        document.getElementById('bookDetailPublisher').style.display = book.publisher ? '' : 'none';
+                        document.getElementById('bookDetailMeta').textContent = book.suggested_by ? `הוצע ע״י ${book.suggested_by}` : '';
+                        document.getElementById('bookDetailMeta').style.display = book.suggested_by ? '' : 'none';
+                        document.getElementById('bookDetailNotes').textContent = book.notes || '';
+                        document.getElementById('bookDetailNotes').style.display = book.notes ? '' : 'none';
+                        document.getElementById('bookDetailVotes').textContent = book.votes;
+                        
+                        // Link
+                        const linkEl = document.getElementById('bookDetailLink');
+                        if (book.link) {
+                            linkEl.href = book.link;
+                            linkEl.style.display = '';
+                        } else {
+                            linkEl.style.display = 'none';
+                        }
+                        
+                        // Cover image
+                        const coverImg = document.getElementById('bookDetailCover');
+                        const placeholder = document.getElementById('bookDetailPlaceholder');
+                        if (book.cover) {
+                            coverImg.src = book.cover;
+                            coverImg.style.display = '';
+                            placeholder.style.display = 'none';
+                        } else {
+                            coverImg.style.display = 'none';
+                            placeholder.style.display = '';
+                        }
+                        
+                        // Badge
+                        document.getElementById('bookDetailBadge').style.display = book.chosen ? '' : 'none';
+                        
+                        // Vote button state
+                        const voteBtn = document.getElementById('bookDetailVoteBtn');
+                        voteBtn.dataset.slug = slug;
+                        if (votedBooks.includes(slug)) {
+                            voteBtn.classList.add('voted');
+                        } else {
+                            voteBtn.classList.remove('voted');
+                        }
+                        
+                        // Load comments
+                        loadComments(book.comments);
+                        
+                        openModal('bookDetailModal');
+                    }
+                });
+        }
+        
+        function loadComments(comments) {
+            const list = document.getElementById('commentsList');
+            document.getElementById('commentsCount').textContent = comments.length;
+            
+            if (comments.length === 0) {
+                list.innerHTML = '<p class="no-comments">אין תגובות עדיין. היה הראשון להגיב!</p>';
+                return;
+            }
+            
+            list.innerHTML = comments.map(c => `
+                <div class="comment">
+                    <div class="comment-header">
+                        <span class="comment-author">${escapeHtml(c.author)}</span>
+                        <span class="comment-date">${c.date}</span>
+                    </div>
+                    <p class="comment-text">${escapeHtml(c.text)}</p>
+                </div>
+            `).join('');
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function toggleVoteInModal() {
+            if (!currentBookSlug) return;
+            toggleVote(currentBookSlug);
+            
+            // Update modal vote count after a short delay
+            setTimeout(() => {
+                const card = document.querySelector(`.card[data-slug="${currentBookSlug}"]`);
+                if (card) {
+                    const voteCount = card.querySelector('.vote-count').textContent;
+                    document.getElementById('bookDetailVotes').textContent = voteCount;
+                }
+            }, 300);
+        }
+        
+        // Add comment form
+        document.getElementById('addCommentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const slug = document.getElementById('commentBookSlug').value;
+            const author = this.querySelector('[name="author"]').value;
+            const text = this.querySelector('[name="text"]').value;
+            
+            fetch(`/books/${slug}/comment`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ author, text })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    // Clear form
+                    this.querySelector('[name="text"]').value = '';
+                    
+                    // Reload book details to get updated comments
+                    fetch(`/books/${slug}`)
+                        .then(r => r.json())
+                        .then(bookData => {
+                            if (bookData.success) {
+                                loadComments(bookData.book.comments);
+                                
+                                // Update comment count on card
+                                const indicator = document.querySelector(`.comment-indicator[data-slug="${slug}"] .comment-count`);
+                                if (indicator) {
+                                    indicator.textContent = data.totalComments;
+                                }
+                            }
+                        });
+                } else {
+                    alert(data.error || 'שגיאה בשליחת התגובה');
                 }
             })
             .catch(err => alert('שגיאה: ' + err.message));
