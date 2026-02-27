@@ -1,0 +1,43 @@
+title: Book Requests
+
+options:
+  changeSlug: false
+  changeStatus: false
+  changeTemplate: false
+  delete: false
+
+columns:
+  - width: 2/3
+    sections:
+      books:
+        type: pages
+        label: All Books
+        template: book
+        status: all
+        layout: table
+        sortBy: votes desc
+        columns:
+          title:
+            label: Title
+            width: 2/5
+          suggested_by:
+            label: By
+            width: 1/5
+          votes:
+            label: Votes
+            width: 1/10
+          chosen:
+            label: Ordered
+            width: 1/10
+            
+  - width: 1/3
+    sections:
+      info:
+        type: info
+        label: Statistics
+        text: |
+          View all book requests here. 
+          
+          Click on a book to edit details or mark it as **Ordered**.
+          
+          Books marked as Ordered will appear dimmed on the public site.

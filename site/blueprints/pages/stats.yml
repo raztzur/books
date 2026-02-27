@@ -1,0 +1,44 @@
+title: Book Request Statistics
+icon: 📊
+
+sections:
+  stats:
+    type: stats
+    fields:
+      - label: Total Books Requested
+        value: "<?= $page->parent()->children()->count() ?>"
+      - label: Student Suggestions
+        value: "<?= $page->parent()->children()->filterBy('category', 'student')->count() ?>"
+      - label: Teacher Suggestions
+        value: "<?= $page->parent()->children()->filterBy('category', 'teacher')->count() ?>"
+      - label: Already Chosen
+        value: "<?= $page->parent()->children()->filterBy('category', 'chosen')->count() ?>"
+      - label: Most Popular Book
+        value: "<?= $page->parent()->children()->sort(fn($a, $b) => (int)$b->votes() <=> (int)$a->votes())->first()?->title() ?? 'N/A' ?>"
+
+  topBooks:
+    type: pages
+    label: Top Voted Books
+    layout: list
+    info: "{{ page.votes }} votes • {{ page.category }}"
+    sortBy: votes desc
+    max: 10
+
+  allBooks:
+    type: pages
+    label: All Books
+    layout: table
+    columns:
+      title:
+        label: Title
+        type: text
+      suggested_by:
+        label: Suggested By
+        type: text
+      category:
+        label: Category
+        type: text
+      votes:
+        label: Votes
+        type: text
+        width: 80px

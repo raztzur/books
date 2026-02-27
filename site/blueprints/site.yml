@@ -1,0 +1,25 @@
+# The `site.yml` blueprint defines the look of the start page (Dashboard) of the Panel.
+
+# The site blueprint usually provides easy access to all main pages of the site.
+# More about the site blueprint: https://getkirby.com/docs/reference/panel/blueprints/site
+
+# The layout of this form has two columns:
+columns:
+  # First column: Photography section
+  - width: 1/2
+    sections:
+      albums: sections/albums
+
+  # Second column: Other Pages
+  - width: 1/2
+    sections:
+      pages:
+        type: pages
+        create: default
+        templates:
+          - about
+          - default
+
+      notes:
+        extends: sections/notes
+        status: listed

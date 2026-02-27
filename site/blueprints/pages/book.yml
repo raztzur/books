@@ -1,0 +1,49 @@
+title: Book
+
+status:
+  draft: Draft
+  listed: Published
+
+fields:
+  title:
+    label: Title
+    type: text
+    required: true
+    
+  suggested_by:
+    label: Suggested By
+    type: text
+    
+  publisher:
+    label: Publisher
+    type: text
+    
+  link:
+    label: URL
+    type: url
+    
+  cover_url:
+    label: Cover Image URL
+    type: url
+    
+  cover:
+    label: Cover Image File
+    type: files
+    max: 1
+    
+  notes:
+    label: Notes
+    type: textarea
+    
+  votes:
+    label: Votes
+    type: number
+    default: 0
+    
+  chosen:
+    label: Mark as Ordered
+    type: toggle
+    text:
+      - Pending
+      - Ordered
+    default: false

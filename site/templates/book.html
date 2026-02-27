@@ -1,0 +1,46 @@
+<?php
+// site/templates/book.html
+?><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= html($page->title()) ?></title>
+    <link rel="stylesheet" href="<?= url('assets/css/books.css') ?>">
+</head>
+<body>
+    <div class="container">
+        <a href="<?= $page->parent()->url() ?>">&larr; Back to Books</a>
+        
+        <div style="max-width: 600px; margin: 40px auto;">
+            <div class="book-card" style="height: auto;">
+                <div class="book-cover">
+                    <?php if ($page->cover()->exists()): ?>
+                        <img src="<?= $page->cover()->first()->url() ?>" alt="<?= esc($page->title()) ?>">
+                    <?php else: ?>
+                        <div class="cover-placeholder">No Cover</div>
+                    <?php endif; ?>
+                </div>
+                
+                <div class="book-info">
+                    <h1><?= esc($page->title()) ?></h1>
+                    
+                    <div style="margin: 20px 0;">
+                        <p><strong>Suggested by:</strong> <?= esc($page->suggested_by()) ?></p>
+                        <p><strong>Category:</strong> <?= $page->category() === 'student' ? 'Student' : ($page->category() === 'teacher' ? 'Teacher' : 'Chosen') ?></p>
+                        <?php if ($page->publisher()->isNotEmpty()): ?>
+                            <p><strong>Publisher:</strong> <?= esc($page->publisher()) ?></p>
+                        <?php endif; ?>
+                        <?php if ($page->link()->isNotEmpty()): ?>
+                            <p><strong>Link:</strong> <a href="<?= esc($page->link()) ?>" target="_blank"><?= esc($page->link()) ?></a></p>
+                        <?php endif; ?>
+                        <?php if ($page->notes()->isNotEmpty()): ?>
+                            <p><strong>Notes:</strong> <?= esc($page->notes()) ?></p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
