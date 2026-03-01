@@ -38,6 +38,15 @@ Chosen: false
 
 ----
 
+Comments:
+
+-
+  author: 'רז צור'
+  text: '123'
+  date: '2026-02-27'
+
+----
+
 Category: teacher
 
 ----

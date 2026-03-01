@@ -6,6 +6,10 @@ Suggested-by: Michael Lee
 
 ----
 
+Role: 
+
+----
+
 Publisher: Taschen
 
 ----
@@ -26,11 +30,15 @@ Notes: Contemporary graphic design excellence
 
 ----
 
-Votes: 12
+Votes: 13
 
 ----
 
 Chosen: false
+
+----
+
+Comments: []
 
 ----
 

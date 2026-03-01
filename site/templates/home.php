@@ -15,26 +15,43 @@
             $firstLine = trim($titleParts[0] ?? '');
             $restLines = isset($titleParts[1]) ? '<br>' . trim($titleParts[1]) : '';
             ?>
-            <h1 class="page-title"><a href="/"><?= html($firstLine) ?></a><button class="scroll-top" onclick="scrollToTop()" title="חזרה למעלה">↑</button><?php if ($restLines): ?><br><a href="/"><?= html(trim($titleParts[1])) ?></a><?php endif; ?></h1>
-            <button class="btn-add" onclick="openModal('requestForm')">הצעת ספר +</button>
+            <h1 class="page-title"><a href="/"><?= html($firstLine) ?><?php if ($restLines): ?><br><?= html(trim($titleParts[1])) ?><?php endif; ?></a><button class="scroll-top" onclick="scrollToTop()" title="חזרה למעלה">↑</button></h1>
+            <button class="btn-add" onclick="openModal('requestForm')">הצעת ספר חדש +</button>
             
             <div class="controls">
                 <div class="control-group">
                     <div class="control-label">סדר לפי</div>
                     <div class="control-options">
-                        <?php $currentSort = $kirby->request()->get('sort') ?? 'date'; ?>
-                        <a href="?sort=date<?= $kirby->request()->get('filter') ? '&filter=' . $kirby->request()->get('filter') : '' ?>" class="control-option <?= $currentSort === 'date' ? 'active' : '' ?>">תאריך העלאה</a>
-                        <a href="?sort=rating<?= $kirby->request()->get('filter') ? '&filter=' . $kirby->request()->get('filter') : '' ?>" class="control-option <?= $currentSort === 'rating' ? 'active' : '' ?>">פופולריות</a>
-                        <a href="?sort=title<?= $kirby->request()->get('filter') ? '&filter=' . $kirby->request()->get('filter') : '' ?>" class="control-option <?= $currentSort === 'title' ? 'active' : '' ?>">אלףבית</a>
+                        <?php 
+                        $currentSort = $kirby->request()->get('sort') ?? 'date';
+                        $currentDir = $kirby->request()->get('dir') ?? ($currentSort === 'title' ? 'asc' : 'desc');
+                        $filterParam = $kirby->request()->get('filter') ? '&filter=' . $kirby->request()->get('filter') : '';
+                        
+                        // Toggle direction if clicking same sort
+                        function getSortUrl($sort, $currentSort, $currentDir, $filterParam) {
+                            if ($sort === $currentSort) {
+                                $newDir = $currentDir === 'asc' ? 'desc' : 'asc';
+                            } else {
+                                $newDir = $sort === 'title' ? 'asc' : 'desc';
+                            }
+                            return "?sort={$sort}&dir={$newDir}{$filterParam}";
+                        }
+                        $arrowDown = '<svg class="sort-arrow" width="8" height="8" viewBox="0 0 8 5"><path d="M1 1l3 3 3-3" stroke="currentColor" stroke-width="1" fill="none" /></svg>';
+                        $arrowUp = '<svg class="sort-arrow" width="8" height="8" viewBox="0 0 8 5"><path d="M1 4l3-3 3 3" stroke="currentColor" stroke-width="1" fill="none" /></svg>';
+                        ?>
+                        <a href="<?= getSortUrl('date', $currentSort, $currentDir, $filterParam) ?>" class="control-option <?= $currentSort === 'date' ? 'active' : '' ?>">תאריך העלאה<?php if($currentSort === 'date'): ?>&nbsp;&nbsp;<?= $currentDir === 'desc' ? $arrowDown : $arrowUp ?><?php endif; ?></a>
+                        <a href="<?= getSortUrl('rating', $currentSort, $currentDir, $filterParam) ?>" class="control-option <?= $currentSort === 'rating' ? 'active' : '' ?>">פופולריות<?php if($currentSort === 'rating'): ?>&nbsp;&nbsp;<?= $currentDir === 'desc' ? $arrowDown : $arrowUp ?><?php endif; ?></a>
+                        <a href="<?= getSortUrl('title', $currentSort, $currentDir, $filterParam) ?>" class="control-option <?= $currentSort === 'title' ? 'active' : '' ?>">אלפבית<?php if($currentSort === 'title'): ?>&nbsp;&nbsp;<?= $currentDir === 'asc' ? $arrowDown : $arrowUp ?><?php endif; ?></a>
                     </div>
                 </div>
                 
                 <div class="control-group">
-                    <div class="control-label">סנן לפי <?php $currentFilter = $kirby->request()->get('filter'); if ($currentFilter): ?><a href="?sort=<?= $currentSort ?>" class="show-all">(איפוס)</a><?php endif; ?></div>
+                    <div class="control-label">סנן לפי <?php $currentFilter = $kirby->request()->get('filter'); if ($currentFilter): ?><a href="?sort=<?= $currentSort ?>&dir=<?= $currentDir ?>" class="show-all">(איפוס)</a><?php endif; ?></div>
                     <div class="control-options">
-                        <a href="?sort=<?= $currentSort ?>&filter=chosen" class="control-option <?= $currentFilter === 'chosen' ? 'active' : '' ?>">הוזמנו</a>
-                        <a href="?sort=<?= $currentSort ?>&filter=student" class="control-option <?= $currentFilter === 'student' ? 'active' : '' ?>">הצעות תלמידים</a>
-                        <a href="?sort=<?= $currentSort ?>&filter=teacher" class="control-option <?= $currentFilter === 'teacher' ? 'active' : '' ?>">הצעות מורים</a>
+                        <a href="?sort=<?= $currentSort ?>&dir=<?= $currentDir ?>&filter=student" class="control-option <?= $currentFilter === 'student' ? 'active' : '' ?>">הצעות תלמידים</a>
+                        <a href="?sort=<?= $currentSort ?>&dir=<?= $currentDir ?>&filter=teacher" class="control-option <?= $currentFilter === 'teacher' ? 'active' : '' ?>">הצעות מרצים</a>
+                                                <a href="?sort=<?= $currentSort ?>&dir=<?= $currentDir ?>&filter=chosen" class="control-option <?= $currentFilter === 'chosen' ? 'active' : '' ?>">הוזמנו</a>
+
                     </div>
                 </div>
             </div>
@@ -55,19 +72,21 @@
             
             // Sort
             $sort = $kirby->request()->get('sort') ?? 'date';
+            $dir = $kirby->request()->get('dir') ?? ($sort === 'title' ? 'asc' : 'desc');
+            
             if ($sort === 'title') {
-                $books = $books->sortBy('title', 'asc');
+                $books = $books->sortBy('title', $dir);
             } elseif ($sort === 'date') {
-                $books = $books->sortBy('date', 'desc');
+                $books = $books->sortBy('date', $dir);
             } else {
                 $booksArray = [];
                 foreach ($books as $book) {
                     $booksArray[] = $book;
                 }
-                usort($booksArray, function($a, $b) {
+                usort($booksArray, function($a, $b) use ($dir) {
                     $aVotes = intval($a->votes()->value() ?? 0);
                     $bVotes = intval($b->votes()->value() ?? 0);
-                    return $bVotes <=> $aVotes;
+                    return $dir === 'desc' ? ($bVotes <=> $aVotes) : ($aVotes <=> $bVotes);
                 });
                 $books = new \Kirby\Toolkit\Collection($booksArray);
             }
@@ -150,35 +169,28 @@
     <!-- Modal -->
     <div class="modal" id="requestForm">
         <div class="modal-box">
-            <button class="modal-close" onclick="closeModal('requestForm')">×</button>
-            <h2>הוספת ספר</h2>
+            <div class="modal-header">
+                <h2>הצעת ספר חדש</h2>
+                <button class="modal-close" onclick="closeModal('requestForm')">×</button>
+            </div>
             
-            <form id="addBookForm">
+            <form id="addBookForm" novalidate>
                 <div class="field">
-                    <label>שם הספר *</label>
-                    <input type="text" name="title" required placeholder="שם הספר">
+                    <input type="text" name="title" required placeholder="שם הספר *">
                 </div>
                 
                 <div class="field">
-                    <label>השם שלך *</label>
-                    <input type="text" name="suggested_by" required placeholder="השם שלך">
+                    <input type="text" name="publisher" required placeholder="מוציא לאור *">
                 </div>
                 
                 <div class="field">
-                    <label>מוציא לאור</label>
-                    <input type="text" name="publisher" placeholder="שם המוציא לאור">
+                    <input type="url" name="link" id="bookLinkInput" required placeholder="קישור לעמוד הספר *">
                 </div>
                 
                 <div class="field">
-                    <label>קישור לספר</label>
-                    <input type="url" name="link" placeholder="קישור מחנות אונליין (התמונה תילקח אוטומטית)">
-                </div>
-                
-                <div class="field">
-                    <label>תמונת כריכה (אופציונלי)</label>
                     <div class="dropzone" id="coverDropzone">
                         <div class="dropzone-content">
-                            <span class="dropzone-text">גרור קובץ, הדבק קישור לתמונה,<br><u>בחר קובץ</u> או לחץ <u>לבחירה</u></span>
+                            <span class="dropzone-text">התמונה תתעדכן אוטומטית מהקישור.<br>לא מרוצים? גררו תמונה או <u>בחרו קובץ</u></span>
                             <div class="dropzone-preview hidden">
                                 <img src="" alt="Preview">
                                 <button type="button" class="dropzone-remove">×</button>
@@ -188,10 +200,20 @@
                         <input type="hidden" name="cover_url" id="coverUrlHidden">
                     </div>
                 </div>
-                
                 <div class="field">
-                    <label>הערות</label>
-                    <textarea name="notes" placeholder="למה אתה רוצה את הספר הזה?"></textarea>
+                    <input type="text" name="suggested_by" required placeholder="השם שלך *">
+                </div>
+                <div class="field">
+                    <div class="role-switch">
+                        <input type="radio" name="role" value="student" id="roleStudent" checked>
+                        <label for="roleStudent">סטודנט/ית</label>
+                        <input type="radio" name="role" value="tutor" id="roleTutor">
+                        <label for="roleTutor">מרצה</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <!-- <label>הערות</label> -->
+                    <textarea name="notes" placeholder="למה צריך את הספר הזה?"></textarea>
                 </div>
                 
                 <button type="submit" class="btn-submit">שלח</button>
@@ -211,11 +233,10 @@
                 </div>
                 
                 <div class="book-detail-info">
-                    <h2 id="bookDetailTitle"></h2>
+                    <h2><a href="" target="_blank" id="bookDetailTitleLink"><span id="bookDetailTitle"></span> <span class="arrow">↗</span></a></h2>
                     <p class="book-detail-publisher" id="bookDetailPublisher"></p>
                     <p class="book-detail-meta" id="bookDetailMeta"></p>
                     <p class="book-detail-notes" id="bookDetailNotes"></p>
-                    <a href="" target="_blank" class="book-detail-link" id="bookDetailLink">קישור לספר ↖</a>
                     
                     <div class="book-detail-actions">
                         <div class="vote-wrap">
@@ -236,10 +257,12 @@
                     <!-- Comments will be loaded here -->
                 </div>
                 
-                <form id="addCommentForm" class="add-comment-form">
+                <form id="addCommentForm" class="add-comment-form" novalidate>
                     <input type="hidden" id="commentBookSlug">
-                    <div class="comment-inputs">
+                    <div class="field">
                         <input type="text" name="author" placeholder="השם שלך" required>
+                    </div>
+                    <div class="field">
                         <textarea name="text" placeholder="כתוב תגובה..." required></textarea>
                     </div>
                     <button type="submit" class="btn-submit">שלח</button>
@@ -249,6 +272,17 @@
     </div>
 
     <script>
+        // Auto-resize textareas
+        function autoResizeTextarea(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
+        
+        document.querySelectorAll('.field textarea').forEach(textarea => {
+            textarea.addEventListener('input', () => autoResizeTextarea(textarea));
+            autoResizeTextarea(textarea);
+        });
+        
         // Scroll to top
         function scrollToTop() {
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -348,6 +382,7 @@
         const dropzoneImg = dropzonePreview.querySelector('img');
         const dropzoneRemove = dropzone.querySelector('.dropzone-remove');
         const coverUrlHidden = document.getElementById('coverUrlHidden');
+        let autoFetchedImage = false;
         
         function showPreview(src) {
             dropzoneImg.src = src;
@@ -363,6 +398,7 @@
             dropzone.classList.remove('has-preview');
             dropzoneFile.value = '';
             coverUrlHidden.value = '';
+            autoFetchedImage = false;
         }
         
         // Click to select file
@@ -449,9 +485,79 @@
         // Make dropzone focusable for paste
         dropzone.setAttribute('tabindex', '0');
         
+        // Auto-fetch cover from book link
+        const bookLinkInput = document.getElementById('bookLinkInput');
+        let fetchTimeout = null;
+        
+        bookLinkInput.addEventListener('input', (e) => {
+            const url = e.target.value.trim();
+            
+            // Clear previous timeout
+            if (fetchTimeout) {
+                clearTimeout(fetchTimeout);
+            }
+            
+            // Don't fetch if user already uploaded/selected an image
+            if (dropzone.classList.contains('has-preview') && !autoFetchedImage) {
+                return;
+            }
+            
+            // Debounce - wait 500ms after user stops typing
+            if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                fetchTimeout = setTimeout(() => {
+                    fetch('/books/fetch-cover', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: url })
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success && data.image) {
+                            coverUrlHidden.value = data.image;
+                            showPreview(data.image);
+                            autoFetchedImage = true;
+                        }
+                    })
+                    .catch(() => {});
+                }, 500);
+            }
+        });
+        
+        // Track when user manually uploads/selects image
+        dropzoneFile.addEventListener('change', () => {
+            autoFetchedImage = false;
+        });
+        
+        // Clear invalid state on input
+        document.querySelectorAll('#addBookForm input[required], #addBookForm textarea[required]').forEach(input => {
+            input.addEventListener('input', () => {
+                input.closest('.field').classList.remove('invalid', 'shake');
+            });
+        });
+        
         // Form submit
         document.getElementById('addBookForm').addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            // Validate required fields
+            let isValid = true;
+            const requiredFields = this.querySelectorAll('input[required], textarea[required]');
+            
+            requiredFields.forEach(input => {
+                const field = input.closest('.field');
+                field.classList.remove('invalid', 'shake');
+                
+                if (!input.value.trim()) {
+                    isValid = false;
+                    field.classList.add('invalid', 'shake');
+                    
+                    // Remove shake class after animation
+                    setTimeout(() => field.classList.remove('shake'), 400);
+                }
+            });
+            
+            if (!isValid) return;
+            
             const formData = new FormData(this);
             
             fetch('/books/add', {
@@ -496,13 +602,14 @@
                         document.getElementById('bookDetailNotes').style.display = book.notes ? '' : 'none';
                         document.getElementById('bookDetailVotes').textContent = book.votes;
                         
-                        // Link
-                        const linkEl = document.getElementById('bookDetailLink');
+                        // Title link
+                        const titleLink = document.getElementById('bookDetailTitleLink');
                         if (book.link) {
-                            linkEl.href = book.link;
-                            linkEl.style.display = '';
+                            titleLink.href = book.link;
+                            titleLink.style.pointerEvents = '';
                         } else {
-                            linkEl.style.display = 'none';
+                            titleLink.href = '#';
+                            titleLink.style.pointerEvents = 'none';
                         }
                         
                         // Cover image
@@ -542,7 +649,7 @@
             document.getElementById('commentsCount').textContent = comments.length;
             
             if (comments.length === 0) {
-                list.innerHTML = '<p class="no-comments">אין תגובות עדיין. היה הראשון להגיב!</p>';
+                list.innerHTML = '';
                 return;
             }
             
@@ -565,7 +672,19 @@
         
         function toggleVoteInModal() {
             if (!currentBookSlug) return;
+            
+            const modalVoteBtn = document.getElementById('bookDetailVoteBtn');
+            const isVoted = votedBooks.includes(currentBookSlug);
+            
+            // Toggle vote
             toggleVote(currentBookSlug);
+            
+            // Update modal button state
+            if (isVoted) {
+                modalVoteBtn.classList.remove('voted');
+            } else {
+                modalVoteBtn.classList.add('voted');
+            }
             
             // Update modal vote count after a short delay
             setTimeout(() => {

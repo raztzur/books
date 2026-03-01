@@ -18,8 +18,8 @@ fields:
     label: Role
     type: select
     options:
-      student: תלמיד/ה
-      teacher: מורה
+      student: סטודנט/ית
+      tutor: מרצה
     default: student
     
   publisher:

@@ -130,6 +130,28 @@ Kirby::plugin('custom/book-api', [
             }
         ],
         [
+            'pattern' => 'books/fetch-cover',
+            'method' => 'POST',
+            'action' => function() {
+                header('Content-Type: application/json');
+                $input = json_decode(file_get_contents('php://input'), true);
+                $url = $input['url'] ?? null;
+                
+                if (!$url) {
+                    http_response_code(400);
+                    return ['success' => false, 'error' => 'Missing URL'];
+                }
+                
+                $imageUrl = extractOgImage($url);
+                
+                if ($imageUrl) {
+                    return ['success' => true, 'image' => $imageUrl];
+                } else {
+                    return ['success' => false, 'error' => 'No image found'];
+                }
+            }
+        ],
+        [
             'pattern' => 'books/add',
             'method' => 'POST',
             'action' => function() {
@@ -137,6 +159,7 @@ Kirby::plugin('custom/book-api', [
                 try {
                     $title = $_POST['title'] ?? null;
                     $suggested_by = $_POST['suggested_by'] ?? null;
+                    $role = $_POST['role'] ?? 'student';
                     $publisher = $_POST['publisher'] ?? '';
                     $link = $_POST['link'] ?? '';
                     $cover_url = $_POST['cover_url'] ?? '';
@@ -174,6 +197,7 @@ Kirby::plugin('custom/book-api', [
                     $data = [
                         'title' => $title,
                         'suggested_by' => $suggested_by,
+                        'role' => $role,
                         'publisher' => $publisher,
                         'link' => $link,
                         'cover_url' => $cover_url,
@@ -264,6 +288,7 @@ Kirby::plugin('custom/book-api', [
                             'slug' => $book->slug(),
                             'title' => $book->title()->value(),
                             'suggested_by' => $book->suggested_by()->value(),
+                            'role' => $book->role()->value() ?: 'student',
                             'publisher' => $book->publisher()->value(),
                             'link' => $book->link()->value(),
                             'cover' => $coverUrl,
