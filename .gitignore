@@ -1,0 +1,17 @@
+# Kirby CMS - install via composer
+kirby/
+
+# Dependencies
+vendor/
+
+# Cache and sessions
+site/cache/*
+!site/cache/index.html
+site/sessions/*
+
+# Media files (generated)
+media/
+
+# Local config
+.DS_Store
+.env

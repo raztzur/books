@@ -6,6 +6,10 @@ Suggested-by: מערכת
 
 ----
 
+Role: 
+
+----
+
 Publisher: 
 
 ----
@@ -31,6 +35,10 @@ Votes: 0
 ----
 
 Chosen: false
+
+----
+
+Comments: []
 
 ----
 
